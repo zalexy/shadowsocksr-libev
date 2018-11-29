@@ -212,6 +212,11 @@ create_and_bind(const char *addr, const char *port) {
         return -1;
     }
 
+    if (result == NULL) {
+        LOGE("Could not bind");
+        return -1;
+    }
+
     for (rp = result; rp != NULL; rp = rp->ai_next) {
         listen_sock = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
         if (listen_sock == -1) {
@@ -237,11 +242,7 @@ create_and_bind(const char *addr, const char *port) {
         }
 
         close(listen_sock);
-    }
-
-    if (rp == NULL) {
-        LOGE("Could not bind");
-        return -1;
+        listen_sock = -1;
     }
 
     freeaddrinfo(result);
@@ -717,7 +718,10 @@ server_recv_cb(EV_P_ ev_io *w, int revents) {
 
                     ss_free(hostname);
                 } else {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsizeof-pointer-memaccess"
                     strncpy(host, ip, sizeof(ip));
+#pragma GCC diagnostic pop
                 }
             }
 
@@ -856,8 +860,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents) {
                 if (server_env->cipher.enc_method > TABLE) {
                     server->e_ctx = ss_malloc(sizeof(struct enc_ctx));
                     server->d_ctx = ss_malloc(sizeof(struct enc_ctx));
-                    enc_ctx_init(&server_env->cipher, server->e_ctx, 1);
-                    enc_ctx_init(&server_env->cipher, server->d_ctx, 0);
+                    enc_ctx_init(&server_env->cipher, server->e_ctx, 1, NULL);
+                    enc_ctx_init(&server_env->cipher, server->d_ctx, 0, NULL);
                 } else {
                     server->e_ctx = NULL;
                     server->d_ctx = NULL;
